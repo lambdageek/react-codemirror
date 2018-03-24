@@ -2,11 +2,15 @@ import * as React from 'react';
 import './CodeMirror.css';
 import * as CM from 'codemirror';
 import 'codemirror/lib/codemirror.css';
-import 'codemirror/mode/javascript/javascript';
 
-const defaultValue = 'function hello { return "hello"; }\n';
-                                  
-export default class CodeMirror extends React.Component {
+export interface Props {
+    config: CM.EditorConfiguration;
+    value: string;
+}
+
+export {EditorConfiguration} from 'codemirror';
+
+export default class CodeMirror extends React.Component<Props> {
     textAreaElement: HTMLTextAreaElement | null = null;
     codeMirrorEditor: CM.EditorFromTextArea | null = null;
     setTextArea = (elt: HTMLTextAreaElement | null) => {
@@ -14,9 +18,9 @@ export default class CodeMirror extends React.Component {
     }
     componentDidMount() {
         if (this.textAreaElement) {
-            this.codeMirrorEditor =
-                CM.fromTextArea (this.textAreaElement,
-                                 {mode: 'javascript'});
+            const cmConfig: CM.EditorConfiguration = {mode: this.props.config.mode};
+            const ed = CM.fromTextArea (this.textAreaElement, cmConfig);
+            this.codeMirrorEditor = ed;
         }
     }
 
@@ -29,7 +33,7 @@ export default class CodeMirror extends React.Component {
     render () {
         return (
             <div className="CodeMirror-holder">
-              <textarea ref={this.setTextArea} value={defaultValue}/>
+              <textarea ref={this.setTextArea} value={this.props.value}/>
             </div>
         );
     }
