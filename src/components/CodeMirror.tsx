@@ -15,13 +15,12 @@ export interface ApplyMark extends FromToPos {
     options?: CM.TextMarkerOptions;
 }
 
-type DocRenderChild = (doc: CM.Doc | null) => React.ReactNode;
+type DocRenderChild = (itf: CodeMarkItf) => React.ReactNode;
 
 export interface Props {
     config: CM.EditorConfiguration;
     value: string;
     onChange?: ChangeEventHandler;
-    oneMark?: ApplyMark;
     children?: DocRenderChild;
 }
 
@@ -36,12 +35,36 @@ export interface State {
 export {EditorConfiguration, EditorChange, EditorChangeLinkedList,
         Position, TextMarkerOptions} from 'codemirror';
 
+// stuff the parent passes down
+export interface CodeMarkItf {
+    reapplyMark: (newMark: ApplyMark, forceUpdate?: boolean) => void;
+    needsNewMark: (oldApplyMark: ApplyMark|undefined, applyMark: ApplyMark) => boolean;
+}
 export interface CodeMarkProps {
-    doc: CM.Doc;
+    itf: CodeMarkItf;
+    applyMark?: ApplyMark;
 }
 
 export class CodeMark extends React.Component<CodeMarkProps, {}> {
-    render () {
+    componentDidMount() {
+        const itf = this.props.itf;
+        if (this.props.applyMark) {
+            itf.reapplyMark (this.props.applyMark, true); 
+        }
+    }
+    componentWillReceiveProps(nextProps: CodeMarkProps) {
+        if (nextProps.applyMark !== undefined) {
+            console.log ('new props have mark');
+            if (this.props.itf.needsNewMark (this.props.applyMark, nextProps.applyMark)) {
+                console.log ('needs new marker');
+                this.props.itf.reapplyMark (nextProps.applyMark);
+            }
+        }    
+    }
+    componentWillUnmount() {
+        // empty
+    }
+    render() {
         return null;
     }
 }
@@ -60,12 +83,11 @@ export class CodeMirror extends React.Component<Props, State> {
         }
     }
 
-    getDoc = () => {
-        if (this.codeMirrorEditor) {
-            return this.codeMirrorEditor.getDoc();
-        } else {
-            return null;
-        }
+    getChildItf: () => CodeMarkItf = () => {
+        return {
+            reapplyMark: this.reapplyMark,
+            needsNewMark: this.needsNewMark,
+        };
     }
     componentDidMount() {
         if (this.textAreaElement) {
@@ -76,9 +98,6 @@ export class CodeMirror extends React.Component<Props, State> {
             this.codeMirrorEditor = ed;
             ed.setValue(this.props.value);
             ed.on ('change', this.receiveEditorChange);
-            if (this.props.oneMark) {
-                this.applyOneMark (ed, this.props.oneMark);
-            }
         }
     }
 
@@ -88,6 +107,7 @@ export class CodeMirror extends React.Component<Props, State> {
             const ed = this.codeMirrorEditor;
             ed.off ('change', this.receiveEditorChange);
             ed.toTextArea ();
+            this.codeMirrorEditor = null;
         }
     }
     render () {
@@ -98,7 +118,7 @@ export class CodeMirror extends React.Component<Props, State> {
                     <textarea ref={this.setTextArea} readOnly={true}/>
                 </div>
                 <div className="CodeMirror-markholder">
-                    {this.props.children && asDocRenderChild (this.props.children) (this.getDoc())}
+                    {this.props.children && asDocRenderChild (this.props.children) (this.getChildItf())}
                 </div>
             </div>
         );
@@ -119,27 +139,35 @@ export class CodeMirror extends React.Component<Props, State> {
                 this.codeMirrorEditor.getValue() !== nextProps.value) {
                     ed.setValue(nextProps.value);
             }
-            if (nextProps.oneMark !== undefined) {
-                console.log ('new props have mark');
-                if (this.props.oneMark !== nextProps.oneMark ||
-                    (this.state.markyMark === undefined ||
-                     !sameMarkRange (findMark (this.state.markyMark), nextProps.oneMark))) {
-                    console.log ('new mark');
-                    const oldMark = this.state.markyMark;
-                    this.applyOneMark (ed, nextProps.oneMark);
-                    if (oldMark) {
-                        console.log ('clearing old mark');
-                        oldMark.clear();
-                    }
-                }
-            }
         }
     }
 
-    applyOneMark = (ed: CM.EditorFromTextArea, oneMark: ApplyMark) => {
-        console.log ('applying one mark');
-        const newMark = makeMark(ed.getDoc (), oneMark);
-        this.setState ({markyMark: newMark});
+    reapplyMark = (oneMark: ApplyMark, forceUpdate?: boolean) => {
+        const ed = this.codeMirrorEditor;
+        if (ed) {
+            const doc = ed.getDoc ();
+            const oldMark = this.setMarkyMark (makeMark (doc, oneMark));
+            if (oldMark) {
+                oldMark.clear ();
+            }
+        }
+        if (forceUpdate) {
+            this.forceUpdate ();
+        }
+    }
+    needsNewMark = (oldMark: ApplyMark | undefined, newMark: ApplyMark) => {
+        return (oldMark !== newMark ||
+                (this.state && this.state.markyMark === undefined) ||
+                !sameMarkRange (((this.state && this.state.markyMark) ?
+                                 findMark (this.state.markyMark) 
+                                 : undefined),
+                                newMark));
+    }
+
+    setMarkyMark = (newMarkyMark: CM.TextMarker) => {
+        const oldMark = this.state && this.state.markyMark;
+        this.setState ({markyMark: newMarkyMark});
+        return oldMark;
     }
 }
 
