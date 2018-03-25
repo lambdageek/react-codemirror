@@ -4,7 +4,7 @@ import './FancyBoi.css';
 
 export interface Props {
     style?: React.CSSProperties;
-    children?: JSX.Element[] | JSX.Element | string | boolean | null;
+    children?: React.ReactNode;
 }
 
 export default function FancyBoi (props: Props) {

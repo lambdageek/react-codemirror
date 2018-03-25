@@ -1,8 +1,8 @@
 import * as React from 'react';
 import './App.css';
-import CodeMirror from './components/CodeMirror';
 import FancyBoi from './components/FancyBoi';
 import 'codemirror/mode/javascript/javascript';
+import * as CodeMirror from './components/CodeMirror';
 
 const defaultValue = 'function hello { return "hello!"; }\n';
 
@@ -23,10 +23,22 @@ class App extends React.Component<{}, State> {
   }
   render() {
     const config: CodeMirror.EditorConfiguration = {mode: 'javascript'};
+    const whereMark: CodeMirror.ApplyMark = {
+      from: {line: 0, ch: 9},
+      to: {line: 0, ch: 14},
+      options: {className: 'salty-marker', title: 'Salty Boi'}
+    };
     return (
       <div className="App">
         <div className="AppTop">
-          <CodeMirror config={config} value={this.state.editorValue} onChange={this.pickupChange}/>
+          <CodeMirror.CodeMirror
+           config={config}
+           value={this.state.editorValue}
+           onChange={this.pickupChange}
+           oneMark={whereMark}
+          >
+           {(doc) => doc && (<CodeMirror.CodeMark doc={doc} />)}
+          </CodeMirror.CodeMirror>
         </div>
         <div className="FancyBois">
           <FancyBoi>

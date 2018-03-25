@@ -12,3 +12,8 @@
 	height: 100%;
 	width: 100%;
 }
+
+.CodeMirror .salty-marker {
+	font-style: 'italic';
+	background: rgb(255, 239, 12);
+}
