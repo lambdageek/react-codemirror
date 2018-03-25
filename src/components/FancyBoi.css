@@ -1,0 +1,17 @@
+.FancyBoi {
+	background: rgb(44, 16, 80);
+	color: white;
+	padding: 5px;
+	border: 2px solid black;
+	border-radius: 10px;
+	display: inline-block;
+	height: auto;
+	width: auto;
+}
+
+.FancyBoi > button {
+	background: transparent;
+	border: 1px solid black;
+	font: inherit;
+	color: inherit;
+}
